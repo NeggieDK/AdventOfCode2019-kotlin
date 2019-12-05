@@ -50,7 +50,7 @@ fun main(){
             var wire2steps = 0
             wire1Coordinates.forEach { it2 ->
                 if (getCollision(it2, it)) {
-                    var stepsToPoint = if (it2.type == LineType.VERTICAL) {
+                    val stepsToPoint = if (it2.type == LineType.VERTICAL) {
                         abs(it2.startPoint.second - it.second)
                     } else {
                         abs(it2.startPoint.first - it.first)
@@ -66,7 +66,7 @@ fun main(){
             }
             wire2Coordinates.forEach { it3 ->
                 if (getCollision(it3, it)) {
-                    var stepsToPoint = if (it3.type == LineType.VERTICAL) {
+                    val stepsToPoint = if (it3.type == LineType.VERTICAL) {
                         abs(it3.startPoint.second - it.second)
                     } else {
                         abs(it3.startPoint.first - it.first)
@@ -107,8 +107,8 @@ fun getCollision(line: Line, point: Pair<Int, Int>) : Boolean {
 
 fun getCollisions(line1: Line, line2: Line): List<Pair<Int, Int>>{
     if(line1.type == LineType.VERTICAL && line2.type == LineType.VERTICAL){
-        if(line1.startPoint.first != line2.startPoint.first){
-            return emptyList()
+        return if(line1.startPoint.first != line2.startPoint.first){
+            emptyList()
         }
         else{
             val list = listOf(line1.startPoint.second, line1.endPoint.second, line1.startPoint.second, line2.endPoint.second).sorted()
@@ -116,18 +116,21 @@ fun getCollisions(line1: Line, line2: Line): List<Pair<Int, Int>>{
             for(i in list[1]..list[2]){
                 crossPointList.add(Pair(line1.startPoint.first, i))
             }
+            crossPointList
         }
     }
     else if(line1.type == LineType.HORIZONTAL && line2.type == LineType.HORIZONTAL){
-        if(line1.startPoint.second != line2.startPoint.second){
-            return emptyList()
+        return if(line1.startPoint.second != line2.startPoint.second){
+            emptyList()
         }
         else{
             val list = listOf(line1.startPoint.first, line1.endPoint.first, line1.startPoint.first, line2.endPoint.first).sorted()
             val crossPointList = mutableListOf<Pair<Int, Int>>()
             for(i in list[1]..list[2]){
+                if(i == 1 && line1.startPoint.second ==1) continue
                 crossPointList.add(Pair(i, line1.startPoint.second))
             }
+            crossPointList
         }
     }
 
