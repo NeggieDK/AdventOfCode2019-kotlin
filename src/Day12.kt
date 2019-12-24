@@ -3,45 +3,46 @@ package day12
 import kotlin.math.abs
 
 fun main(){
-    //var moon1 = Moon(-1, 0,2, "Moon1")
-    //var moon2 = Moon(2, -10,-7, "Moon2")
-    //var moon3 = Moon(4, -8,8, "Moon3")
-    //var moon4 = Moon(3, 5,-1, "Moon4")
-    var moon1 = Moon(-8, -10,0, "Moon1")
-    var moon2 = Moon(5, 5,10, "Moon2")
-    var moon3 = Moon(2, -7,3, "Moon3")
-    var moon4 = Moon(9, -8,-3, "Moon4")
+    var moon1 = Moon(-10, -10,-13, "Moon1")
+    var moon2 = Moon(5, 5,-9,"Moon2")
+    var moon3 = Moon(3, 8,-16, "Moon3")
+    var moon4 = Moon(1, 3,-3, "Moon4")
     var jupiter = Jupiter()
     jupiter.Moons.add(moon1)
     jupiter.Moons.add(moon2)
     jupiter.Moons.add(moon3)
     jupiter.Moons.add(moon4)
 
-    jupiter.simulateManySteps(10)
-    val totalEnergy = jupiter.getTotalEnergy()
-    println("Total energy: $totalEnergy")
+    //Uncomment for part 1
+    //jupiter.simulateManySteps(2773)
+    //val totalEnergy = jupiter.getTotalEnergy()
+    //println("Total energy: $totalEnergy")
 
     val steps = jupiter.stepsUntilInitialState()
-    println("Steps until initial: $steps")
+    var lcm = lcm(listOf(jupiter.xStep, jupiter.yStep, jupiter.zStep))
+    println("Steps until initial: ${lcm*2}")
 }
 
 class  Jupiter{
     var Moons = mutableListOf<Moon>()
-    var currentStep = 1
+    var currentStep = 1L
+
+    var xStep = 0L
+    var yStep = 0L
+    var zStep = 0L
 
     fun stepsUntilInitialState(){
-        var found = false
-        var steps = 1L
-        while(!found){
+        while(xStep == 0L || yStep == 0L || zStep == 0L){
             timestep()
-            steps++
-            if(steps > 0){
-                var test = true
-                Moons.forEach { if(!it.isBackToInitialPosition()) test = false}
-                if(test){
-                    println("Amount: $steps")
-                    found = true
-                }
+            if(currentStep > 1){
+                if(xStep == 0L && Moons.all { it.XVelocity == 0 })
+                    xStep = currentStep -1
+
+                if(yStep == 0L && Moons.all { it.YVelocity == 0 })
+                    yStep = currentStep -1
+
+                if(zStep == 0L && Moons.all { it.ZVelocity == 0 })
+                    zStep = currentStep -1
             }
 
         }
@@ -61,9 +62,13 @@ class  Jupiter{
         //println("Step $currentStep")
         currentStep++
         updateVelocities()
-        Moons.forEach { it.Move() }
+        updatePositions()
         //Moons.forEach { println(it) }
         //println()
+    }
+
+    fun updatePositions(){
+        Moons.forEach { it.updatePosition() }
     }
 
     fun updateVelocities(){
@@ -88,7 +93,6 @@ class  Jupiter{
                     }
 
             }
-            it.updatePosition()
         }
     }
 }
@@ -102,14 +106,12 @@ class Moon{
         InitialX = x
         InitialY = y
         InitialZ = z
-        NewX = x
-        NewY = y
-        NewZ = z
     }
     var Name = ""
     var X = 0
     var Y = 0
     var Z = 0
+
     var InitialX = 0
     var InitialY = 0
     var InitialZ = 0
@@ -118,14 +120,10 @@ class Moon{
     var YVelocity = 0
     var ZVelocity = 0
 
-    var NewX = 0
-    var NewY = 0
-    var NewZ = 0
-
     fun updatePosition(){
-        NewX += XVelocity
-        NewY += YVelocity
-        NewZ += ZVelocity
+        X += XVelocity
+        Y += YVelocity
+        Z += ZVelocity
     }
 
     override fun toString(): String {
@@ -143,15 +141,17 @@ class Moon{
     fun getTotalEnergy() : Int{
         return getKineticEnergy() * getPotentialEnergy()
     }
+}
 
-    fun isBackToInitialPosition(): Boolean{
-        return X == InitialX && Y == InitialY && Z == InitialZ
+fun gcd(a: Long, b: Long): Long = if (b == 0L) a else gcd(b, a % b)
+fun lcm(a: Long, b: Long): Long = a / gcd(a, b) * b
+
+fun lcm(numbers: List<Long>): Long{
+    val numbersList = numbers.toMutableList()
+    while(numbersList.size > 1){
+        val result = lcm(numbersList[0], numbersList[1])
+        numbersList.removeAt(0)
+        numbersList[0] = result
     }
-
-    fun Move(){
-        X = NewX
-        Y = NewY
-        Z = NewZ
-    }
-
+    return numbersList[0]
 }
