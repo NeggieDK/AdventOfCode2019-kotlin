@@ -12,11 +12,11 @@ var indexInput = parseInput(unparsedInput).first
 var elementInput = parseInput(unparsedInput).second
 
 fun main(){
-    println("Hihi")
-    generatePossibilities()
+    val paths = getPossiblePathsToAllKeys()
+    println("Part 1: the least amount of steps needed is ${paths.map { it.stepsTaken }.min()}")
 }
 
-fun generatePossibilities(){
+fun getPossiblePathsToAllKeys(): List<Vault>{
     val startVault = Vault().apply {
         elementMap = elementInput
         indexMap = indexInput
@@ -34,11 +34,11 @@ fun generatePossibilities(){
         keysInRange.forEach {
             val newVault = deepCopy(currentVault) ?: throw IllegalArgumentException()
             newVault.takeKeyAndOpenDoor(it)
-            newVault.stepsTaken++ //This is not the correct amount of steps
+            newVault.stepsTaken+= it.second //This is not the correct amount of steps
             processQueue.offer(newVault)
         }
     }
-    println()
+    return proccessedList
 }
 
 fun parseInput(unpInput: List<String>): Pair<HashMap<String, String>, HashMap<String, String>>{
@@ -59,53 +59,55 @@ class Vault : java.io.Serializable{
     var keysInOrderTaken = mutableListOf<String>()
     var stepsTaken = 0
 
-    fun takeKeyAndOpenDoor(key: String){
-        val keyIndex = elementMap[key] ?: throw IllegalArgumentException()
-        val doorIndex = elementMap[key.toUpperCase()] ?: ""
+    fun takeKeyAndOpenDoor(key: Pair<String, Int>){
+        val keyIndex = elementMap[key.first] ?: throw IllegalArgumentException()
+        val doorIndex = elementMap[key.first.toUpperCase()] ?: ""
         val currentLocation = elementMap["@"]  ?: throw IllegalArgumentException()
-        keysInOrderTaken.add(key)
-        elementMap.remove(key)
-        elementMap.remove(key.toUpperCase())
+        keysInOrderTaken.add(key.first)
+        elementMap.remove(key.first)
+        elementMap.remove(key.first.toUpperCase())
         elementMap["@"] = keyIndex
         indexMap[currentLocation] = "."
         indexMap[doorIndex] = "."
         indexMap[keyIndex] = "@"
     }
 
-    fun getKeysInRange(): List<String>{
+    fun getKeysInRange(): List<Pair<String, Int>>{
         //also return the distance from the original point so that stepstaken is already calculated here
         val currentLocation = elementMap["@"] ?: throw IllegalArgumentException()
-        val pointsToInspect = ArrayDeque<String>()
-        pointsToInspect.offer(currentLocation)
-        val keysInRange = mutableListOf<String>()
+        val pointsToInspect = ArrayDeque<Pair<String, Int>>()
+        pointsToInspect.offer(Pair(currentLocation,0))
+        val keysInRange = mutableListOf<Pair<String, Int>>()
         val pointsChecked = HashSet<String>()
         while(pointsToInspect.isNotEmpty()){
             val currentElementIndex = pointsToInspect.poll() ?: throw IllegalArgumentException()
-            pointsChecked.add(currentElementIndex)
-            val currentElement = indexMap[currentElementIndex] ?: throw IllegalArgumentException()
+            pointsChecked.add(currentElementIndex.first)
+            val currentElement = indexMap[currentElementIndex.first] ?: throw IllegalArgumentException()
             if(currentElement[0].isLetter() && currentElement[0].isLowerCase())
-                keysInRange.add(currentElement)
+                keysInRange.add(Pair(currentElement, currentElementIndex.second))
             else if(currentElement[0].isLetter() && currentElement[0].isUpperCase())
                 continue
             else{
-                val currentElementLocation = currentElementIndex.split(",").map { it.trim().toInt() }
+                val currentElementLocation = currentElementIndex.first.split(",").map { it.trim().toInt() }
                 val x = currentElementLocation[0]
                 val y = currentElementLocation[1]
+                val steps = currentElementIndex.second +1
                 if(indexMap["${x+1},$y"] != null && indexMap["${x+1},$y"] != "#" && !pointsChecked.contains("${x+1},$y")){//East
-                    pointsToInspect.offer("${x+1},$y")
+
+                    pointsToInspect.offer(Pair("${x+1},$y", steps))
                 }
                 if(indexMap["${x-1},$y"] != null && indexMap["${x-1},$y"] != "#" && !pointsChecked.contains("${x-1},$y")){//West
-                    pointsToInspect.offer("${x-1},$y")
+                    pointsToInspect.offer(Pair("${x-1},$y", steps))
                 }
                 if(indexMap["$x,${y+1}"] != null && indexMap["$x,${y+1}"] != "#" && !pointsChecked.contains("$x,${y+1}")){//South
-                    pointsToInspect.offer("$x,${y+1}")
+                    pointsToInspect.offer(Pair("$x,${y+1}", steps))
                 }
                 if(indexMap["$x,${y-1}"] != null && indexMap["$x,${y-1}"] != "#" && !pointsChecked.contains("$x,${y-1}")){//North
-                    pointsToInspect.offer("$x,${y-1}")
+                    pointsToInspect.offer(Pair("$x,${y-1}", steps))
                 }
             }
         }
-        return keysInRange
+        return keysInRange.distinct()
     }
 }
 
