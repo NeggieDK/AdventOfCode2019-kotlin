@@ -3,7 +3,6 @@ package day18
 import java.io.*
 import java.util.*
 import kotlin.collections.HashMap
-import kotlin.test.currentStackTrace
 
 val unparsedInput = File("C:\\Users\\aarondk\\Kotlin Projects\\Test\\sources\\inputs\\Day18.txt")
     .readLines()
@@ -32,9 +31,13 @@ fun getPossiblePathsToAllKeys(): List<Vault>{
             continue
         }
         keysInRange.forEach {
-            val newVault = deepCopy(currentVault) ?: throw IllegalArgumentException()
+            val newVault = Vault().apply {
+                stepsTaken = currentVault.stepsTaken + it.second
+                keysInOrderTaken = currentVault.keysInOrderTaken.toMutableList()
+                indexMap = HashMap(currentVault.indexMap)
+                elementMap = HashMap(currentVault.elementMap)
+            }
             newVault.takeKeyAndOpenDoor(it)
-            newVault.stepsTaken+= it.second //This is not the correct amount of steps
             processQueue.offer(newVault)
         }
     }
@@ -53,7 +56,7 @@ fun parseInput(unpInput: List<String>): Pair<HashMap<String, String>, HashMap<St
     return Pair(tempMap, tempMap2)
 }
 
-class Vault : java.io.Serializable{
+class Vault{
     var indexMap = HashMap<String, String>()
     var elementMap = HashMap<String, String>()
     var keysInOrderTaken = mutableListOf<String>()
@@ -93,7 +96,6 @@ class Vault : java.io.Serializable{
                 val y = currentElementLocation[1]
                 val steps = currentElementIndex.second +1
                 if(indexMap["${x+1},$y"] != null && indexMap["${x+1},$y"] != "#" && !pointsChecked.contains("${x+1},$y")){//East
-
                     pointsToInspect.offer(Pair("${x+1},$y", steps))
                 }
                 if(indexMap["${x-1},$y"] != null && indexMap["${x-1},$y"] != "#" && !pointsChecked.contains("${x-1},$y")){//West
@@ -109,16 +111,4 @@ class Vault : java.io.Serializable{
         }
         return keysInRange.distinct()
     }
-}
-
-fun <T : java.io.Serializable> deepCopy(obj: T?): T? {
-    if (obj == null) return null
-    val baos = ByteArrayOutputStream()
-    val oos  = ObjectOutputStream(baos)
-    oos.writeObject(obj)
-    oos.close()
-    val bais = ByteArrayInputStream(baos.toByteArray())
-    val ois  = ObjectInputStream(bais)
-    @Suppress("unchecked_cast")
-    return ois.readObject() as T
 }
