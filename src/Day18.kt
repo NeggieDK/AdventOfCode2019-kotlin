@@ -4,6 +4,7 @@ import java.io.*
 import java.util.*
 import kotlin.collections.HashMap
 import kotlin.collections.HashSet
+import kotlin.system.measureTimeMillis
 
 val unparsedInput = File("C:\\Users\\aarondk\\Kotlin Projects\\Test\\sources\\inputs\\Day18.txt")
     .readLines()
@@ -83,15 +84,18 @@ class Vault{
 
     fun createGraph(): HashMap<String, PointOfInterest>{
         val points = hashMapOf(Pair("@", getKeysInRange("@")))
-        for(key in elementMap.keys.filter { it[0].isLetter() && it[0].isLowerCase() }){
-            points[key] = getKeysInRange(key)
+        var time = measureTimeMillis {
+            for (key in elementMap.keys.filter { it[0].isLetter() && it[0].isLowerCase() }) {
+                points[key] = getKeysInRange(key)
+            }
         }
-        println()
+        println(time)
         return points
-        /*FIXME: Now we have the distance from a key to the closest reachable keys
-        Now we don't have to calculate getkeysinrange everytime because it's already done (we move from key to key)
-        We have to keep track of which keys have already opened before so  we can see which elements are accessible
-         */
+        //FIXME: @ -> a -> b -> c
+        //FIXME: Option 1: c -> d -> e -> f
+        //FIXME: Option 2: c -> e -> d -> f
+
+        //With the PoI above we can check fast which keys are in range, and we can caul
     }
 
     fun getKeysInRange(key: String): PointOfInterest{
