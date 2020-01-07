@@ -3,6 +3,7 @@ package day18
 import java.io.*
 import java.util.*
 import kotlin.collections.HashMap
+import kotlin.collections.HashSet
 
 val unparsedInput = File("C:\\Users\\aarondk\\Kotlin Projects\\Test\\sources\\inputs\\Day18.txt")
     .readLines()
@@ -11,12 +12,17 @@ var indexInput = parseInput(unparsedInput).first
 var elementInput = parseInput(unparsedInput).second
 
 fun main(){
-    val paths = getPossiblePathsToAllKeys()
-    println("Part 1: the least amount of steps needed is ${paths.map { it.stepsTaken }.min()}")
+    val startVault = Vault().apply {
+        elementMap = elementInput
+        indexMap = indexInput
+    }
+    startVault.createGraph()
+    //val paths = getPossiblePathsToAllKeys()
+    //println("Part 1: the least amount of steps needed is ${paths.map { it.stepsTaken }.min()}")
 }
 
-fun getPossiblePathsToAllKeys(): List<Vault>{
-    val startVault = Vault().apply {
+//fun getPossiblePathsToAllKeys(): List<Vault>{
+/*    val startVault = Vault().apply {
         elementMap = elementInput
         indexMap = indexInput
     }
@@ -25,7 +31,7 @@ fun getPossiblePathsToAllKeys(): List<Vault>{
     processQueue.offer(startVault)
     while(processQueue.isNotEmpty()){
         val currentVault = processQueue.poll() ?: continue
-        val keysInRange = currentVault.getKeysInRange()
+        val keysInRange = currentVault.getKeysInRange("@", HashSet<String>())
         if(keysInRange.isEmpty()) {
             proccessedList.add(currentVault)
             continue
@@ -41,8 +47,8 @@ fun getPossiblePathsToAllKeys(): List<Vault>{
             processQueue.offer(newVault)
         }
     }
-    return proccessedList
-}
+    return proccessedList*/
+//}
 
 fun parseInput(unpInput: List<String>): Pair<HashMap<String, String>, HashMap<String, String>>{
     val tempMap = HashMap<String, String>()
@@ -75,40 +81,104 @@ class Vault{
         indexMap[keyIndex] = "@"
     }
 
-    fun getKeysInRange(): List<Pair<String, Int>>{
-        //also return the distance from the original point so that stepstaken is already calculated here
-        val currentLocation = elementMap["@"] ?: throw IllegalArgumentException()
-        val pointsToInspect = ArrayDeque<Pair<String, Int>>()
-        pointsToInspect.offer(Pair(currentLocation,0))
-        val keysInRange = mutableListOf<Pair<String, Int>>()
-        val pointsChecked = HashSet<String>()
-        while(pointsToInspect.isNotEmpty()){
-            val currentElementIndex = pointsToInspect.poll() ?: throw IllegalArgumentException()
-            pointsChecked.add(currentElementIndex.first)
-            val currentElement = indexMap[currentElementIndex.first] ?: throw IllegalArgumentException()
-            if(currentElement[0].isLetter() && currentElement[0].isLowerCase())
-                keysInRange.add(Pair(currentElement, currentElementIndex.second))
-            else if(currentElement[0].isLetter() && currentElement[0].isUpperCase())
-                continue
+    fun createGraph(): HashMap<String, PointOfInterest>{
+        val points = hashMapOf(Pair("@", getKeysInRange("@")))
+        for(key in elementMap.keys.filter { it[0].isLetter() && it[0].isLowerCase() }){
+            points[key] = getKeysInRange(key)
+        }
+        println()
+        return points
+        /*FIXME: Now we have the distance from a key to the closest reachable keys
+        Now we don't have to calculate getkeysinrange everytime because it's already done (we move from key to key)
+        We have to keep track of which keys have already opened before so  we can see which elements are accessible
+         */
+    }
+
+    fun getKeysInRange(key: String): PointOfInterest{
+        val rootValue = elementMap[key]?.split(",")?.map { it.toInt() } ?: throw IllegalArgumentException()
+        val root = PointOfInterest(key, rootValue[0], rootValue[1])
+        while(root.pointsToCheck.isNotEmpty()){
+            val pointToCheck = root.pointsToCheck.poll() ?: throw IllegalArgumentException()
+            val pointToCheckValue = indexMap["${pointToCheck.x},${pointToCheck.y}"]
+            if(pointToCheckValue != null && pointToCheckValue[0].isLetter() && pointToCheckValue[0].isLowerCase() && pointToCheck.pointsChecked.isNotEmpty())
+               root.keysAndDoors[pointToCheckValue] = pointToCheck.doorsEncountered
             else{
-                val currentElementLocation = currentElementIndex.first.split(",").map { it.trim().toInt() }
-                val x = currentElementLocation[0]
-                val y = currentElementLocation[1]
-                val steps = currentElementIndex.second +1
-                if(indexMap["${x+1},$y"] != null && indexMap["${x+1},$y"] != "#" && !pointsChecked.contains("${x+1},$y")){//East
-                    pointsToInspect.offer(Pair("${x+1},$y", steps))
+                if(pointToCheckValue != null && pointToCheckValue[0].isLetter() && pointToCheckValue[0].isUpperCase() && pointToCheckValue != key.toUpperCase())
+                    pointToCheck.doorsEncountered.add(pointToCheckValue)
+                pointToCheck.updatePointsChecked()
+                //Add steps
+                if(isElement(pointToCheck.x+1,pointToCheck.y, pointToCheck.pointsChecked)){//East
+                    val newCheckPoint = CheckPoint().apply {
+                        x = pointToCheck.x+1
+                        y = pointToCheck.y
+                        doorsEncountered = pointToCheck.doorsEncountered.toMutableList()
+                        pointsChecked = pointToCheck.pointsChecked.toHashSet()
+                    }
+                    root.pointsToCheck.offer(newCheckPoint)
                 }
-                if(indexMap["${x-1},$y"] != null && indexMap["${x-1},$y"] != "#" && !pointsChecked.contains("${x-1},$y")){//West
-                    pointsToInspect.offer(Pair("${x-1},$y", steps))
+                if(isElement(pointToCheck.x-1,pointToCheck.y, pointToCheck.pointsChecked)){//West
+                    val newCheckPoint = CheckPoint().apply {
+                        x = pointToCheck.x-1
+                        y = pointToCheck.y
+                        doorsEncountered = pointToCheck.doorsEncountered.toMutableList()
+                        pointsChecked = pointToCheck.pointsChecked.toHashSet()
+                    }
+                    root.pointsToCheck.offer(newCheckPoint)
                 }
-                if(indexMap["$x,${y+1}"] != null && indexMap["$x,${y+1}"] != "#" && !pointsChecked.contains("$x,${y+1}")){//South
-                    pointsToInspect.offer(Pair("$x,${y+1}", steps))
+                if(isElement(pointToCheck.x,pointToCheck.y+1, pointToCheck.pointsChecked)){//South
+                    val newCheckPoint = CheckPoint().apply {
+                        x = pointToCheck.x
+                        y = pointToCheck.y+1
+                        doorsEncountered = pointToCheck.doorsEncountered.toMutableList()
+                        pointsChecked = pointToCheck.pointsChecked.toHashSet()
+                    }
+                    root.pointsToCheck.offer(newCheckPoint)
                 }
-                if(indexMap["$x,${y-1}"] != null && indexMap["$x,${y-1}"] != "#" && !pointsChecked.contains("$x,${y-1}")){//North
-                    pointsToInspect.offer(Pair("$x,${y-1}", steps))
+                if(isElement(pointToCheck.x,pointToCheck.y-1, pointToCheck.pointsChecked)){//North
+                    val newCheckPoint = CheckPoint().apply {
+                        x = pointToCheck.x
+                        y = pointToCheck.y-1
+                        doorsEncountered = pointToCheck.doorsEncountered.toMutableList()
+                        pointsChecked = pointToCheck.pointsChecked.toHashSet()
+                    }
+                    root.pointsToCheck.offer(newCheckPoint)
                 }
             }
         }
-        return keysInRange.distinct()
+        return root
+    }
+
+    private fun isElement(x: Int, y: Int, pointsAlreadyChecked: HashSet<String>): Boolean{
+        val element = indexMap["${x},$y"]
+        return element != null && element != "#" && !pointsAlreadyChecked.contains("${x},$y")
+    }
+}
+
+class PointOfInterest{
+    constructor(key: String, x: Int, y: Int){
+        StartingPoint = key
+        pointsToCheck.add((CheckPoint(x, y)))
+    }
+
+    var keysAndDoors = hashMapOf<String, List<String>>()
+    var StartingPoint = ""
+    var steps = 0
+    var pointsToCheck = ArrayDeque<CheckPoint>()
+}
+
+class CheckPoint{
+    constructor(newX: Int, newY: Int){
+        x = newX
+        y = newY
+    }
+
+    constructor()
+    var x = 0
+    var y = 0
+    var doorsEncountered = mutableListOf<String>()
+    var pointsChecked = hashSetOf<String>()
+
+    fun updatePointsChecked(){
+        pointsChecked.add("$x,$y")
     }
 }
