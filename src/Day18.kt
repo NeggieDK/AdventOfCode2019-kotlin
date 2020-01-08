@@ -93,6 +93,7 @@ class Vault{
     var indexMap = HashMap<Pair<Int, Int>, String>()
     var elementMap = HashMap<String, String>()
 
+    //Gets the distance between all possible key combinations and if the robot has to pass a door the get there
     fun createRelations(): HashMap<Pair<String, String>, PointOfInterest>{
         val keys = HashMap<Pair<String, String>, PointOfInterest>()
         for(keyFrom in elementMap.keys.filter { (it[0].isLetter() && !it[0].isUpperCase()) || it == "@" }){
