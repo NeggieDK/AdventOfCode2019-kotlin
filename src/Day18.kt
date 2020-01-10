@@ -6,75 +6,91 @@ import kotlin.Comparator
 import kotlin.collections.HashMap
 import kotlin.collections.HashSet
 import kotlin.system.measureTimeMillis
+import kotlin.test.currentStackTrace
 
-val unparsedInput = File("C:\\Users\\aarondk\\Kotlin Projects\\Test\\sources\\inputs\\Day18.txt")
+val unparsedInput = File("sources\\inputs\\Day18.txt")
     .readLines()
     .map { it.trim() }
 var indexInput = parseInput(unparsedInput).first
 var elementInput = parseInput(unparsedInput).second
 
-fun main(){
+fun main() {
     val startVault = Vault().apply {
         elementMap = elementInput
         indexMap = indexInput
     }
-    val distanceBetweenKeys =  startVault.createRelations()
-    val pathsToAllKeys = mutableListOf<KeyToCheck>()
-    val root = KeyToCheck("@", 0)
-    root.keysTaken.add("@")
-    val keysQueue = ArrayDeque<KeyToCheck>()
-    keysQueue.offer(root)
-
-    // This works but takes long and a lot of memory, for the first test case that fails we (possibly) have 12! combinations (500million)
-    //But there is an optimalization we can make: if you have keys A-B-C-D taken, and B-A-D-C keys taken. We only have to calculate the case where the steps is the lowest
-    //Because the same amount of keys have been taken but less steps have been used
+    val distanceBetweenKeys = startVault.createRelations() //740ms~
+    val readyList = mutableListOf<Pair<KeyToCheck, Int>>()
+    val root = KeyToCheck()
+    val keysCache = HashMap<String, Int>()
+    keysCache[root.toHashKey()] = 0
+    val keysQueue = Stack<KeyToCheck>()
+    keysQueue.add(root)
+    var currentMinStepsToCompletion = Int.MAX_VALUE
     while(keysQueue.isNotEmpty()){
-        var test = measureTimeMillis {
-            val currentKey = keysQueue.poll() ?: throw IllegalArgumentException()
+            val currentPoint = keysQueue.pop() ?: throw IllegalArgumentException()
+            val currentPointSteps = keysCache[currentPoint.toHashKey()] ?: 0
+            if(currentPointSteps >= currentMinStepsToCompletion) {
+                continue
+            }
             val keysInRange = HashMap<String, PointOfInterest>()
             val temp =
-                distanceBetweenKeys.filter { (it.key.second == currentKey.key || it.key.first == currentKey.key) }
+                distanceBetweenKeys.filter { (it.key.second == currentPoint.lastKeyTaken || it.key.first == currentPoint.lastKeyTaken) }
             for ((key, value) in temp) {
-                val keyName = if (key.first == currentKey.key)
+                val toPointKey = if (key.first == currentPoint.lastKeyTaken)
                     key.second
                 else
                     key.first
-                if (currentKey.keysTaken.contains(keyName)) continue
-                if (value.doorsEncountered.size == 0 || currentKey.doorsOpened.containsAll(value.doorsEncountered))
-                    keysInRange[keyName] = value
+
+                if(currentPoint.keysTaken.contains(toPointKey)) continue
+                if (value.doorsEncountered.size == 0 || currentPoint.keysTaken.containsAll(value.doorsEncountered.map { it.toLowerCase()}))
+                    keysInRange[toPointKey] = value
             }
-            if (keysInRange.size == 0) {
-                pathsToAllKeys.add(currentKey)
+
+            if(keysInRange.size == 0){
+                readyList.add(Pair(currentPoint, currentPointSteps))
+                if(currentMinStepsToCompletion > currentPointSteps){
+                    currentMinStepsToCompletion = currentPointSteps
+                }
             }
+
             for (key in keysInRange) {
-                val doors = HashSet<String>(currentKey.doorsOpened)
-                val keys = HashSet<String>(currentKey.keysTaken)
-                doors.add(key.key.toUpperCase())
-                keys.add(key.key)
-                keysQueue.add(KeyToCheck(key.key, key.value.directions.size + currentKey.stepsTaken, doors, keys))
+                val newKeyToCheck = KeyToCheck()
+                newKeyToCheck.keysTaken = HashSet(currentPoint.keysTaken)
+                newKeyToCheck.keysTaken.add(key.key)
+                newKeyToCheck.lastKeyTaken = key.key
+                if(!keysCache.contains(newKeyToCheck.toHashKey())){
+                    keysQueue.push(newKeyToCheck)
+                    keysCache[newKeyToCheck.toHashKey()] = currentPointSteps + key.value.stepsAwayFromOrigin
+                }
+                else{
+                    //println("CacheHit")
+                    val similarElementSteps = keysCache[newKeyToCheck.toHashKey()] ?: throw IllegalArgumentException()
+                    if(similarElementSteps > currentPointSteps + key.value.stepsAwayFromOrigin){
+                        keysQueue.push(newKeyToCheck)
+                        keysCache[newKeyToCheck.toHashKey()] = currentPointSteps + key.value.stepsAwayFromOrigin
+                    }
+                }
             }
-        }
-        //println()
     }
-    println("Part1: amount of steps ${pathsToAllKeys.minBy { it.stepsTaken }?.stepsTaken}")
+    println("Part 1: $currentMinStepsToCompletion")
+    //println("Part1: amount of steps ${pathsToAllKeys.minBy { it.stepsTaken }?.stepsTaken}")
 }
 
 class KeyToCheck{
-    constructor(newKey: String, steps: Int, doors: HashSet<String>, keys: HashSet<String>){
-        key = newKey
-        stepsTaken = steps
-        doorsOpened = doors
-        keysTaken = keys
+    constructor(){
+        keysTaken.add("@")
     }
-
-    constructor(newKey: String, steps: Int){
-        key = newKey
-        stepsTaken = steps
-    }
-    var key = ""
-    var stepsTaken = 0
-    var doorsOpened = HashSet<String>()
+    var lastKeyTaken = "@"
     var keysTaken = HashSet<String>()
+
+    fun toHashKey() : String{
+        var tempKey = ""
+        keysTaken.sorted().forEach {
+            tempKey += "$it;"
+        }
+        return "$tempKey%$lastKeyTaken"
+    }
 }
 
 fun parseInput(unpInput: List<String>): Pair<HashMap<Pair<Int, Int>, String>, HashMap<String, String>>{
