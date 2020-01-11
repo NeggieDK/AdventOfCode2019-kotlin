@@ -117,7 +117,7 @@ fun main() {
         keysQueue.add(root)
         var currentMinStepsToCompletion = Int.MAX_VALUE
         var iterator = 0
-        while (keysQueue.isNotEmpty() && readyList.isEmpty()) {
+        while (keysQueue.isNotEmpty()) {
             iterator++
             val currentPoint = keysQueue.poll() ?: throw IllegalArgumentException()
             val currentPointSteps = keysCache[currentPoint.toHashKey()] ?: 0
@@ -125,17 +125,13 @@ fun main() {
                 continue
             }
             val keysInRangeA = getKeysInRangePart2(distanceBetweenKeysA, currentPoint, "A")
-            if(keysInRangeA.size == 0)
-                keysInRangeA[null] = null
+            keysInRangeA[null] = null
             val keysInRangeB = getKeysInRangePart2(distanceBetweenKeysB, currentPoint, "B")
-            if(keysInRangeB.size == 0)
-                keysInRangeB[null] = null
+            keysInRangeB[null] = null
             val keysInRangeC = getKeysInRangePart2(distanceBetweenKeysC, currentPoint, "C")
-            if(keysInRangeC.size == 0)
-                keysInRangeC[null] = null
+            keysInRangeC[null] = null
             val keysInRangeD = getKeysInRangePart2(distanceBetweenKeysD, currentPoint, "D")
-            if(keysInRangeD.size == 0)
-                keysInRangeD[null] = null
+            keysInRangeD[null] = null
 
             if (currentPoint.keysTaken.size == 27) {
                 //2414 too high
@@ -143,13 +139,11 @@ fun main() {
                 currentMinStepsToCompletion = currentPointSteps
             }
 
-            if(keysInRangeA.containsKey(null) && keysInRangeB.containsKey(null) && keysInRangeC.containsKey(null) && keysInRangeD.containsKey(null))
-                continue
-
             for (keyA in keysInRangeA) {
                 for(keyB in keysInRangeB){
                     for(keyC in keysInRangeC){
                         for(keyD in keysInRangeD){
+                            if(keyA.key == null && keyB.key == null && keyC.key == null && keyD.key == null) continue
                             val newKeyToCheck = KeyToCheckPart2()
                             newKeyToCheck.keysTaken = HashSet(currentPoint.keysTaken)
                             if(keyA.key != null){
