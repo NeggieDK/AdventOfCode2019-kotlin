@@ -7,11 +7,35 @@ import kotlin.collections.HashMap
 import kotlin.collections.HashSet
 import kotlin.system.measureTimeMillis
 
+//Part1
 val unparsedInput = File("sources\\inputs\\Day18.txt")
         .readLines()
         .map { it.trim() }
 var indexInput = parseInput(unparsedInput).first
 var elementInput = parseInput(unparsedInput).second
+
+//Part2
+val unparsedInputA = File("sources\\inputs\\Day18Part2A.txt")
+        .readLines()
+        .map { it.trim() }
+val unparsedInputB = File("sources\\inputs\\Day18Part2B.txt")
+        .readLines()
+        .map { it.trim() }
+val unparsedInputC = File("sources\\inputs\\Day18Part2C.txt")
+        .readLines()
+        .map { it.trim() }
+val unparsedInputD = File("sources\\inputs\\Day18Part2D.txt")
+        .readLines()
+        .map { it.trim() }
+var indexInputA = parseInput(unparsedInputA).first
+var elementInputA = parseInput(unparsedInputA).second
+var indexInputB = parseInput(unparsedInputB).first
+var elementInputB = parseInput(unparsedInputB).second
+var indexInputC = parseInput(unparsedInputC).first
+var elementInputC = parseInput(unparsedInputC).second
+var indexInputD = parseInput(unparsedInputD).first
+var elementInputD = parseInput(unparsedInputD).second
+
 
 fun main() {
     val time = measureTimeMillis {
@@ -35,19 +59,7 @@ fun main() {
             if (currentPointSteps >= currentMinStepsToCompletion) {
                 continue
             }
-            val keysInRange = HashMap<String, PointOfInterest>()
-            val temp =
-                    distanceBetweenKeys.filter { (it.key.second == currentPoint.lastKeyTaken || it.key.first == currentPoint.lastKeyTaken) }
-            for ((key, value) in temp) {
-                val toPointKey = if (key.first == currentPoint.lastKeyTaken)
-                    key.second
-                else
-                    key.first
-
-                if (currentPoint.keysTaken.contains(toPointKey)) continue
-                if (value.doorsEncountered.size == 0 || currentPoint.keysTaken.containsAll(value.doorsEncountered.map { it.toLowerCase() }))
-                    keysInRange[toPointKey] = value
-            }
+            val keysInRange = getKeysInRange(distanceBetweenKeys, currentPoint)
 
             if (keysInRange.size == 0) {
                 readyList.add(Pair(currentPoint, currentPointSteps))
@@ -75,7 +87,159 @@ fun main() {
         println("Part 1: $currentMinStepsToCompletion")
     }
     println("Time to run part1: $time")
-    //println("Part1: amount of steps ${pathsToAllKeys.minBy { it.stepsTaken }?.stepsTaken}")
+    //Part2
+    val time2 = measureTimeMillis {
+        val vaultA = Vault().apply {
+            elementMap = elementInputA
+            indexMap = indexInputA
+        }
+        val vaultB = Vault().apply {
+            elementMap = elementInputB
+            indexMap = indexInputB
+        }
+        val vaultC = Vault().apply {
+            elementMap = elementInputC
+            indexMap = indexInputC
+        }
+        val vaultD = Vault().apply {
+            elementMap = elementInputD
+            indexMap = indexInputD
+        }
+        val distanceBetweenKeysA = vaultA.createRelations() //740ms~
+        val distanceBetweenKeysB = vaultB.createRelations() //740ms~
+        val distanceBetweenKeysC = vaultC.createRelations() //740ms~
+        val distanceBetweenKeysD = vaultD.createRelations() //740ms~
+        val readyList = mutableListOf<Pair<KeyToCheckPart2, Int>>()
+        val root = KeyToCheckPart2()
+        val keysCache = HashMap<String, Int>()
+        keysCache[root.toHashKey()] = 0
+        val keysQueue = PriorityQueue<KeyToCheckPart2>(KeyToCheckComparatorPart2)
+        keysQueue.add(root)
+        var currentMinStepsToCompletion = Int.MAX_VALUE
+        var iterator = 0
+        while (keysQueue.isNotEmpty() && readyList.isEmpty()) {
+            iterator++
+            val currentPoint = keysQueue.poll() ?: throw IllegalArgumentException()
+            val currentPointSteps = keysCache[currentPoint.toHashKey()] ?: 0
+            if (currentPointSteps >= currentMinStepsToCompletion) {
+                continue
+            }
+            val keysInRangeA = getKeysInRangePart2(distanceBetweenKeysA, currentPoint, "A")
+            if(keysInRangeA.size == 0)
+                keysInRangeA[null] = null
+            val keysInRangeB = getKeysInRangePart2(distanceBetweenKeysB, currentPoint, "B")
+            if(keysInRangeB.size == 0)
+                keysInRangeB[null] = null
+            val keysInRangeC = getKeysInRangePart2(distanceBetweenKeysC, currentPoint, "C")
+            if(keysInRangeC.size == 0)
+                keysInRangeC[null] = null
+            val keysInRangeD = getKeysInRangePart2(distanceBetweenKeysD, currentPoint, "D")
+            if(keysInRangeD.size == 0)
+                keysInRangeD[null] = null
+
+            if (currentPoint.keysTaken.size == 27) {
+                //2414 too high
+                readyList.add(Pair(currentPoint, currentPointSteps))
+                currentMinStepsToCompletion = currentPointSteps
+            }
+
+            if(keysInRangeA.containsKey(null) && keysInRangeB.containsKey(null) && keysInRangeC.containsKey(null) && keysInRangeD.containsKey(null))
+                continue
+
+            for (keyA in keysInRangeA) {
+                for(keyB in keysInRangeB){
+                    for(keyC in keysInRangeC){
+                        for(keyD in keysInRangeD){
+                            val newKeyToCheck = KeyToCheckPart2()
+                            newKeyToCheck.keysTaken = HashSet(currentPoint.keysTaken)
+                            if(keyA.key != null){
+                                newKeyToCheck.keysTaken.add(keyA.key!!)
+                                newKeyToCheck.lastKeyTakenA = keyA.key!!
+                            }else{
+                                newKeyToCheck.lastKeyTakenA = currentPoint.lastKeyTakenA
+                            }
+                            if(keyB.key != null){
+                                newKeyToCheck.keysTaken.add(keyB.key!!)
+                                newKeyToCheck.lastKeyTakenB = keyB.key!!
+                            }else{
+                                newKeyToCheck.lastKeyTakenB = currentPoint.lastKeyTakenB
+                            }
+                            if(keyC.key != null){
+                                newKeyToCheck.lastKeyTakenC = keyC.key!!
+                                newKeyToCheck.keysTaken.add(keyC.key!!)
+                            }else{
+                                newKeyToCheck.lastKeyTakenC = currentPoint.lastKeyTakenC
+                            }
+                            if(keyD.key != null) {
+                                newKeyToCheck.lastKeyTakenD = keyD.key!!
+                                newKeyToCheck.keysTaken.add(keyD.key!!)
+                            }else{
+                                newKeyToCheck.lastKeyTakenD = currentPoint.lastKeyTakenD
+                            }
+
+                            var totalSteps = keyA.value?.stepsAwayFromOrigin ?: 0
+                            totalSteps += keyB.value?.stepsAwayFromOrigin ?: 0
+                            totalSteps += keyC.value?.stepsAwayFromOrigin ?: 0
+                            totalSteps += keyD.value?.stepsAwayFromOrigin ?: 0
+                            if (!keysCache.contains(newKeyToCheck.toHashKey())) {
+                                keysQueue.offer(newKeyToCheck)
+                                keysCache[newKeyToCheck.toHashKey()] = currentPointSteps + totalSteps
+                            } else {
+                                val similarElementSteps = keysCache[newKeyToCheck.toHashKey()] ?: throw IllegalArgumentException()
+                                if (similarElementSteps > currentPointSteps + totalSteps) {
+                                    keysQueue.offer(newKeyToCheck)
+                                    keysCache[newKeyToCheck.toHashKey()] = currentPointSteps + totalSteps
+                                }
+                            }
+                        }
+                    }
+                }
+                //newKeyToCheck.priority = currentPointSteps + key.value.stepsAwayFromOrigin + newKeyToCheck.keysTaken.size
+            }
+        }
+        println("Part 2: $currentMinStepsToCompletion")
+    }
+}
+
+fun getKeysInRange(distanceBetweenKeys: HashMap<Pair<String, String>, PointOfInterest>, currentPoint: KeyToCheck): HashMap<String, PointOfInterest>{
+    val keysInRange = HashMap<String, PointOfInterest>()
+    val temp =
+            distanceBetweenKeys.filter { (it.key.second == currentPoint.lastKeyTaken || it.key.first == currentPoint.lastKeyTaken) }
+    for ((key, value) in temp) {
+        val toPointKey = if (key.first == currentPoint.lastKeyTaken)
+            key.second
+        else
+            key.first
+
+        if (currentPoint.keysTaken.contains(toPointKey)) continue
+        if (value.doorsEncountered.size == 0 || currentPoint.keysTaken.containsAll(value.doorsEncountered.map { it.toLowerCase() }))
+            keysInRange[toPointKey] = value
+    }
+    return keysInRange
+}
+
+fun getKeysInRangePart2(distanceBetweenKeys: HashMap<Pair<String, String>, PointOfInterest>, currentPoint: KeyToCheckPart2, part: String): HashMap<String?, PointOfInterest?>{
+    val keysInRange = HashMap<String?, PointOfInterest?>()
+    val lastKeyTaken = when (part) {
+        "A" -> currentPoint.lastKeyTakenA
+        "B" -> currentPoint.lastKeyTakenB
+        "C" -> currentPoint.lastKeyTakenC
+        else -> currentPoint.lastKeyTakenD
+    }
+
+    val temp =
+            distanceBetweenKeys.filter { (it.key.second == lastKeyTaken || it.key.first == lastKeyTaken) }
+    for ((key, value) in temp) {
+        val toPointKey = if (key.first == lastKeyTaken)
+            key.second
+        else
+            key.first
+
+        if (currentPoint.keysTaken.contains(toPointKey)) continue
+        if (value.doorsEncountered.size == 0 || currentPoint.keysTaken.containsAll(value.doorsEncountered.map { it.toLowerCase() }))
+            keysInRange[toPointKey] = value
+    }
+    return keysInRange
 }
 
 class KeyToCheck {
@@ -96,10 +260,31 @@ class KeyToCheck {
     }
 }
 
+class KeyToCheckPart2 {
+    constructor() {
+        keysTaken.add("@")
+    }
+
+    var lastKeyTakenA = "@"
+    var lastKeyTakenB = "@"
+    var lastKeyTakenC = "@"
+    var lastKeyTakenD = "@"
+    var keysTaken = HashSet<String>()
+    var priority = 0
+
+    fun toHashKey(): String {
+        var tempKey = ""
+        keysTaken.sorted().forEach {
+            tempKey += "$it;"
+        }
+        return "$tempKey%$lastKeyTakenA%$lastKeyTakenB%$lastKeyTakenC%$lastKeyTakenD"
+    }
+}
+
 fun parseInput(unpInput: List<String>): Pair<HashMap<Pair<Int, Int>, String>, HashMap<String, String>> {
     val tempMap = HashMap<Pair<Int, Int>, String>()
     val tempMap2 = HashMap<String, String>()
-    for ((y, line) in unparsedInput.withIndex()) {
+    for ((y, line) in unpInput.withIndex()) {
         for ((x, element) in line.withIndex()) {
             tempMap[Pair(x, y)] = element.toString().trim()
             tempMap2[element.toString().trim()] = "$x,$y"
@@ -212,3 +397,4 @@ class PointOfInterest {
 
 var pointOfInterestAStarComparator = Comparator<PointOfInterest> { s1, s2 -> s1.priority - s2.priority }
 var KeyToCheckComparator = Comparator<KeyToCheck> { s1, s2 -> s1.priority - s2.priority }
+var KeyToCheckComparatorPart2 = Comparator<KeyToCheckPart2> { s1, s2 -> s1.priority - s2.priority }
