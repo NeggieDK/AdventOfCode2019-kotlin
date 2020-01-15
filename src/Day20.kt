@@ -29,10 +29,18 @@ fun main() {
     println()
 }
 
+fun shortestPath(sPoint: String, ePoint: String){
+
+}
+
 fun calculateDistanceKeys(){
     for(pLoc in portalsLocation){
         val coord = pLoc.value.split(",").map { it.toInt() }
         val keysFound = hashMapOf<String, Int>()
+        if(pLoc.key.contains("_I"))
+            keysFound[pLoc.key.split("_")[0] + "_O"] = 1
+        else
+            keysFound[pLoc.key.split("_")[0] + "_I"] = 1
         val visited = hashSetOf<String>()
         val objects = ArrayDeque<Check>()
         objects.offer(Check(coord[0], coord[1]))
