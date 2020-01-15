@@ -2,6 +2,7 @@ package day20
 
 import java.io.File
 import java.util.*
+import kotlin.collections.HashMap
 import kotlin.collections.HashSet
 
 // Need to build a graph of all the portals, do BFS on each key to see which keys are directly in range from each other
@@ -20,16 +21,18 @@ val unparsedInput = File("sources\\inputs\\Day20.txt")
     .readLines()
 val portalsLocation = hashMapOf<String, String>()
 val points = hashMapOf<String, String>()
+val portalsConn = hashMapOf<String, HashMap<String, Int>>()
 
 fun main() {
     parseInput()
     calculateDistanceKeys()
+    println()
 }
 
 fun calculateDistanceKeys(){
     for(pLoc in portalsLocation){
         val coord = pLoc.value.split(",").map { it.toInt() }
-        val keysFound = hashSetOf<String>()
+        val keysFound = hashMapOf<String, Int>()
         val visited = hashSetOf<String>()
         val objects = ArrayDeque<Check>()
         objects.offer(Check(coord[0], coord[1]))
@@ -37,8 +40,8 @@ fun calculateDistanceKeys(){
             val currP = objects.poll() ?: throw IllegalArgumentException()
             val currV = points["${currP.X},${currP.Y}"]
             visited.add("${currP.X},${currP.Y}")
-            if(currV != null && currV != "."){
-                keysFound.add(currV)
+            if(currV != null && currV != "." && currP.Steps != 0){
+                keysFound[currV] = currP.Steps
             }
             // North
             if(isOpenSpace(currP.X,currP.Y - 1) && !visited(currP.X, currP.Y - 1, visited)){
@@ -57,7 +60,7 @@ fun calculateDistanceKeys(){
                 objects.offer(Check(currP.X - 1, currP.Y, currP.Steps+1))
             }
         }
-        println()
+        portalsConn[pLoc.key] = keysFound
     }
 }
 
