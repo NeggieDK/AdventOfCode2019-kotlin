@@ -26,20 +26,46 @@ val portalsConn = hashMapOf<String, HashMap<String, Int>>()
 fun main() {
     parseInput()
     calculateDistanceKeys()
-    println()
+    println("Shortest path from AA to ZZ is ${shortestPath("AA_O", "ZZ_O")}")
+    shortestPathPart2("AA_O", "ZZ_O")
 }
 
-fun shortestPath(sPoint: String, ePoint: String){
-
+fun shortestPath(sPoint: String, ePoint: String): Int?{
+    val nodes = hashMapOf<String, Int>()
+    portalsConn.forEach {
+        if(it.key == sPoint) nodes[it.key] = 0
+        else nodes[it.key] = Int.MAX_VALUE }
+    val visited = hashSetOf<String>()
+    while(visited.size < nodes.size){
+        val currN = getPoint(nodes, visited)
+        val currNeighbors = portalsConn[currN.key] ?: throw IllegalArgumentException()
+        for(neighbour in currNeighbors){
+            if(visited.contains(neighbour.key)) continue
+            val currV = nodes[neighbour.key] ?: throw IllegalArgumentException()
+            if(currV > currN.value + neighbour.value)
+                nodes[neighbour.key] = currN.value + neighbour.value
+        }
+        visited.add(currN.key)
+    }
+    return nodes[ePoint]
+    // Starting point = AA
+    // Gets the neighbours from AA out portalsConn -> for every neighbour calculate the cost (in step 1 this is just the distance)
+    // Put this cost in a new hashmap that consists of key = portal and value = current steps
+    // Get the value with the lowest currentsteps and not visited and calulcate the neighbour distance again and so forth until every node has been visited!
 }
+
+fun getPoint(nodes: HashMap<String, Int>, visited: HashSet<String>): Map.Entry<String, Int> {
+    return nodes.filter{!visited.contains(it.key) }.minBy { it.value} ?: throw IllegalArgumentException()
+}
+
 
 fun calculateDistanceKeys(){
     for(pLoc in portalsLocation){
         val coord = pLoc.value.split(",").map { it.toInt() }
         val keysFound = hashMapOf<String, Int>()
-        if(pLoc.key.contains("_I"))
+        if(pLoc.key.contains("_I") && pLoc.key != "AA_I" && pLoc.key != "ZZ_I")
             keysFound[pLoc.key.split("_")[0] + "_O"] = 1
-        else
+        else if(pLoc.key != "AA_O" && pLoc.key != "ZZ_O")
             keysFound[pLoc.key.split("_")[0] + "_I"] = 1
         val visited = hashSetOf<String>()
         val objects = ArrayDeque<Check>()
@@ -70,6 +96,7 @@ fun calculateDistanceKeys(){
         }
         portalsConn[pLoc.key] = keysFound
     }
+
 }
 
 fun isOpenSpace(x: Int, y: Int): Boolean{
@@ -139,6 +166,7 @@ fun parseInput() {
             points["$maxX,$y"] = portalName + "_O"
         }
     }
+
 }
 
 fun getAndDeletePortalName(x: Int, y: Int): String{
@@ -146,6 +174,39 @@ fun getAndDeletePortalName(x: Int, y: Int): String{
     points.remove("$x,$y")
     return value
 }
+
+fun shortestPathPart2(sPoint: String, ePoint: String): Int?{
+    // BFS slow + level + manhattan?? == A*
+    // visited is too restrictive at the moment, should try adding lastVisited in PCHeck to make sure we aren't going back
+    val nodes = PriorityQueue<PCheck>(PCheckComp)
+    nodes.offer(PCheck(sPoint, 0,0))
+    while(nodes.isNotEmpty()){
+        val currN = nodes.poll() ?: throw IllegalArgumentException()
+        if(currN.Level > portalsConn.size) continue
+        val currNeighbors = portalsConn[currN.Name] ?: throw IllegalArgumentException()
+        for(neighbour in currNeighbors){
+            val diff = if(neighbour.key.endsWith("_O")) -1 else 1
+            if(currN.LastChecked == neighbour.key) continue
+            if(currN.Level == 0){
+                if(neighbour.key.endsWith("_O") && (neighbour.key != "ZZ_O" || neighbour.key != "AA_O")) continue
+            }
+            else if(currN.Level != 0 && neighbour.key == "ZZ_O" || neighbour.key == "AA_O") continue
+
+            if(neighbour.key == "ZZ_O")
+                println()
+
+            var newName = ""
+            if(neighbour.key.endsWith("_O"))
+                newName = neighbour.key.replace("_O", "_I")
+            else
+                newName = neighbour.key.replace("_I", "_O")
+
+            nodes.offer(PCheck(newName, currN.Steps + neighbour.value+1, currN.Level+diff, neighbour.key))
+        }
+    }
+    return 0
+}
+
 data class Check(val X: Int = 0, val Y: Int = 0, val Steps: Int = 0)
-
-
+data class PCheck(val Name: String = "", val Steps: Int = 0, val Level: Int = 0, val LastChecked: String = "")
+var PCheckComp = Comparator<PCheck> { s1, s2 -> s1.Steps - s2.Steps }
