@@ -1,11 +1,12 @@
 import java.io.File
 import kotlin.math.abs
 
-var currentDeck = hashMapOf<Long, Long>()
-val cardsAmount = 10_007L
+
 val commands = File("sources\\inputs\\Day22.txt").readLines()
 
 fun main(){
+    var currentDeck = hashMapOf<Long, Long>()
+    val cardsAmount = 10_007L
     //Initiates the cards
     for(i in 0 until cardsAmount){
         currentDeck[i] = i
@@ -24,7 +25,7 @@ fun main(){
     println(currentDeck.filter { it.value == 2019L }.toList())
 }
 
-fun getNumber(input: String) : Long{ // This isborken, this thinks the last number will only be 1 digit which is false
+fun getNumber(input: String) : Long{
     var result = ""
     for(el in input.reversed()){
         if(el.isDigit() || el.toString() == "-") result = el.toString() + result
