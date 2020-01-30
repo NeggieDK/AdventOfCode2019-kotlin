@@ -83,20 +83,16 @@ fun getNextGenerationPart2(input: HashMap<Int, List<List<String>>>): HashMap<Int
 
                 val upLvl = input.getOrDefault(lvlNr + 1, null)
                 if (upLvl != null) {
-                    if (x == 0) {
+                    if (x == 0)
                         if (upLvl[2][1] == "#") amountNeighbours++
-                    }
-                    if (y == 0) {
+                    if (y == 0)
                         if (upLvl[1][2] == "#") amountNeighbours++
-                    }
-                    if (x == level.value[y].size - 1) {
+                    if (x == level.value[y].size - 1)
                         if (upLvl[2][3] == "#") amountNeighbours++
-                    }
-                    if (y == level.value.size - 1) {
+                    if (y == level.value.size - 1)
                         if (upLvl[3][2] == "#") amountNeighbours++
-                    }
                 }
-                //println("Level $lvlNr: $x, $y has $amountNeighbours neighbours")
+
                 if (x == 2 && y == 2)
                     newLevel[2].add(".")
                 else
@@ -184,12 +180,10 @@ fun toHashSet(input: List<List<String>>): HashSet<String> {
 }
 
 fun print(input: List<List<String>>) {
-    for (row in input) {
-        for (el in row) {
+    for (row in input)
+        for (el in row)
             print(el)
-        }
         println()
-    }
     println()
 }
 
